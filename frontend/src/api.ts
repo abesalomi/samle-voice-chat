@@ -1,34 +1,41 @@
 import type { Tour, Booking } from "./types";
+import { getAllTours, getAllBookings } from "./tour-data";
+import { ClientChatSession } from "./gemini-client";
 
-const API_BASE = "/api";
+const GEMINI_API_KEY =
+  import.meta.env.VITE_GEMINI_API_KEY ||
+  "AIzaSyC8fQ54RW5k1EFaKmKfYW6Y4IDIAdLloNc";
+
+const sessions = new Map<string, ClientChatSession>();
+
+function getSession(sessionId: string): ClientChatSession {
+  if (!sessions.has(sessionId)) {
+    sessions.set(sessionId, new ClientChatSession(GEMINI_API_KEY));
+  }
+  return sessions.get(sessionId)!;
+}
 
 export async function fetchTours(): Promise<Tour[]> {
-  const res = await fetch(`${API_BASE}/tours`);
-  const data = await res.json();
-  return data.tours;
+  return getAllTours();
 }
 
 export async function fetchTour(tourId: string): Promise<Tour> {
-  const res = await fetch(`${API_BASE}/tours/${tourId}`);
-  return res.json();
+  const tour = getAllTours().find((t) => t.id === tourId);
+  if (!tour) throw new Error("Tour not found");
+  return tour;
 }
 
 export async function fetchBookings(): Promise<Booking[]> {
-  const res = await fetch(`${API_BASE}/bookings`);
-  const data = await res.json();
-  return data.bookings;
+  return getAllBookings();
 }
 
 export async function sendTextMessage(
   message: string,
   sessionId: string
 ): Promise<{ response: string; session_id: string }> {
-  const res = await fetch(`${API_BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, session_id: sessionId }),
-  });
-  return res.json();
+  const session = getSession(sessionId);
+  const response = await session.sendMessage(message);
+  return { response, session_id: sessionId };
 }
 
 export async function sendVoiceMessage(
@@ -39,10 +46,7 @@ export async function sendVoiceMessage(
   response: string;
   session_id: string;
 }> {
-  const res = await fetch(`${API_BASE}/voice`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ audio_base64: audioBase64, session_id: sessionId }),
-  });
-  return res.json();
+  const session = getSession(sessionId);
+  const { transcribed, response } = await session.processAudio(audioBase64);
+  return { transcribed_text: transcribed, response, session_id: sessionId };
 }
