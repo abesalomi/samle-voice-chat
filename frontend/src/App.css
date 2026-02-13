@@ -1,0 +1,123 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f7fa;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  font-size: 36px;
+}
+
+.app-brand h1 {
+  margin: 0;
+  font-size: 20px;
+  color: #1a1a2e;
+  font-weight: 700;
+}
+
+.app-brand p {
+  margin: 0;
+  font-size: 13px;
+  color: #888;
+}
+
+.app-nav {
+  display: flex;
+  gap: 4px;
+  background: #f1f3f4;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.nav-tab:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.nav-tab.active {
+  background: white;
+  color: #1a73e8;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Main */
+.app-main {
+  flex: 1;
+  display: flex;
+  padding: 20px;
+}
+
+.chat-container {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  height: calc(100vh - 100px);
+}
+
+.content-container {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .app-header {
+    padding: 10px 16px;
+    justify-content: center;
+  }
+
+  .app-brand h1 {
+    font-size: 16px;
+  }
+
+  .app-main {
+    padding: 12px;
+  }
+
+  .chat-container {
+    height: calc(100vh - 120px);
+  }
+
+  .nav-tab {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .tour-grid {
+    grid-template-columns: 1fr;
+  }
+}
