@@ -2,10 +2,14 @@
 
 import base64
 import json
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.tour_data import get_all_tours, get_tour_by_id, get_all_bookings, create_booking
@@ -164,3 +168,19 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "service": "Thailand Tour Booking Chat"}
+
+
+# ---- Serve frontend static files ----
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+if STATIC_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        """Serve the React SPA for all non-API routes."""
+        file_path = STATIC_DIR / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(STATIC_DIR / "index.html")
