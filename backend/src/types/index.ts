@@ -1,4 +1,4 @@
-export interface Tour {
+export interface TourResponse {
   id: string;
   name: string;
   location: string;
@@ -10,7 +10,7 @@ export interface Tour {
   image_url: string;
 }
 
-export interface Booking {
+export interface BookingResponse {
   id: string;
   tour_id: string;
   tour_name: string;
@@ -25,15 +25,5 @@ export interface Booking {
 
 export interface StructuredData {
   type: "tours" | "tour_detail" | "booking_confirmation" | "bookings";
-  data: Tour[] | Tour | Booking | Booking[];
-}
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  isVoice?: boolean;
-  transcribedText?: string;
-  structuredData?: StructuredData;
+  data: TourResponse[] | TourResponse | BookingResponse | BookingResponse[];
 }

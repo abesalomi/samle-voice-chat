@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, StructuredData, Tour, Booking } from "../types";
 import { sendTextMessage, sendVoiceMessage } from "../api";
 import VoiceRecorder from "./VoiceRecorder";
 import "./ChatPanel.css";
@@ -31,7 +31,8 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
     role: "user" | "assistant",
     content: string,
     isVoice = false,
-    transcribedText?: string
+    transcribedText?: string,
+    structuredData?: StructuredData
   ) => {
     const msg: ChatMessage = {
       id: Date.now().toString() + Math.random(),
@@ -40,6 +41,7 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
       timestamp: new Date(),
       isVoice,
       transcribedText,
+      structuredData,
     };
     setMessages((prev) => [...prev, msg]);
     return msg;
@@ -54,11 +56,8 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
 
     try {
       const data = await sendTextMessage(text, sessionId);
-      addMessage("assistant", data.response);
-      if (
-        data.response.toLowerCase().includes("booking") &&
-        data.response.toLowerCase().includes("confirmed")
-      ) {
+      addMessage("assistant", data.response, false, undefined, data.structured_data);
+      if (data.structured_data?.type === "booking_confirmation") {
         onBookingMade();
       }
     } catch {
@@ -77,7 +76,6 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
 
     try {
       const data = await sendVoiceMessage(audioBase64, sessionId);
-      // Update the user's voice message with transcription
       setMessages((prev) => {
         const updated = [...prev];
         const lastUserMsg = [...updated]
@@ -89,11 +87,8 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
         }
         return updated;
       });
-      addMessage("assistant", data.response);
-      if (
-        data.response.toLowerCase().includes("booking") &&
-        data.response.toLowerCase().includes("confirmed")
-      ) {
+      addMessage("assistant", data.response, false, undefined, data.structured_data);
+      if (data.structured_data?.type === "booking_confirmation") {
         onBookingMade();
       }
     } catch {
@@ -114,22 +109,79 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
   };
 
   const formatMessage = (content: string) => {
-    // Simple markdown-like formatting
     return content
       .split("\n")
       .map((line, i) => {
-        // Bold
         line = line.replace(
           /\*\*(.*?)\*\*/g,
           "<strong>$1</strong>"
         );
-        // Bullet points
         if (line.startsWith("- ") || line.startsWith("* ")) {
           return `<li key=${i}>${line.slice(2)}</li>`;
         }
         return line;
       })
       .join("<br/>");
+  };
+
+  const renderStructuredData = (data: StructuredData) => {
+    switch (data.type) {
+      case "tours":
+        return (
+          <div className="inline-tour-cards">
+            {(data.data as Tour[]).map((tour) => (
+              <div key={tour.id} className="inline-tour-card">
+                <img src={tour.image_url} alt={tour.name} />
+                <div className="inline-tour-info">
+                  <strong>{tour.name}</strong>
+                  <span>{tour.location} | ${tour.price_usd}/person</span>
+                  <span>{tour.duration}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      case "tour_detail": {
+        const tour = data.data as Tour;
+        return (
+          <div className="inline-tour-detail">
+            <img src={tour.image_url} alt={tour.name} />
+            <div className="inline-tour-detail-info">
+              <strong>{tour.name}</strong>
+              <span>{tour.location}</span>
+              <span>${tour.price_usd}/person | {tour.duration}</span>
+              <span>Max {tour.max_participants} participants</span>
+              <div className="inline-tour-dates">
+                {tour.available_dates.slice(0, 5).map((d) => (
+                  <span key={d} className="date-chip">{d}</span>
+                ))}
+                {tour.available_dates.length > 5 && (
+                  <span className="date-chip">+{tour.available_dates.length - 5} more</span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+      case "booking_confirmation": {
+        const booking = data.data as Booking;
+        return (
+          <div className="inline-booking-confirmation">
+            <div className="booking-confirm-header">Booking Confirmed!</div>
+            <div className="booking-confirm-details">
+              <span><strong>Tour:</strong> {booking.tour_name}</span>
+              <span><strong>Date:</strong> {booking.selected_date}</span>
+              <span><strong>Guests:</strong> {booking.num_participants}</span>
+              <span><strong>Name:</strong> {booking.customer_name}</span>
+              <span><strong>Total:</strong> ${booking.total_price_usd}</span>
+              <span className="booking-id">ID: {booking.id}</span>
+            </div>
+          </div>
+        );
+      }
+      default:
+        return null;
+    }
   };
 
   return (
@@ -160,6 +212,7 @@ export default function ChatPanel({ sessionId, onBookingMade }: Props) {
                   __html: formatMessage(msg.content),
                 }}
               />
+              {msg.structuredData && renderStructuredData(msg.structuredData)}
               <span className="message-time">
                 {msg.timestamp.toLocaleTimeString([], {
                   hour: "2-digit",
